@@ -1,2 +1,3 @@
 (library
- (name fdsa))
+ (name fdsa)
+ (libraries adt))

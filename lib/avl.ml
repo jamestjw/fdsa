@@ -1,22 +1,7 @@
-module type Ord = sig
-  type t
-
-  val compare : t -> t -> int
-end
+open Adt.Bst
+open Ord
 
 module AvlTree = struct
-  module type BST = sig
-    type e
-    type t
-
-    val height : t -> int
-    val size : t -> int
-    val is_empty : t -> bool
-    val min_value : t -> e option
-    (* TODO: define what it means to be a BST *)
-    (* TODO: e.g. define insert, delete and search *)
-  end
-
   module Make (E : Ord) : BST with type e := E.t = struct
     type e = E.t
     type t = Empty | Node of int * t * e * t
