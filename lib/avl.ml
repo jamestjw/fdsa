@@ -10,6 +10,7 @@ module AvlTree = struct
       | Node of int * t * e * t
 
     let compare = E.compare
+    let empty = Empty
 
     let height = function
       | Empty -> 0
@@ -122,13 +123,17 @@ module AvlTree = struct
     ;;
 
     (* When the element is not in the tree, this function simple does nothing. *)
-    let rec remove tree a =
+    let rec remove_cmp tree ~compare a =
       match tree with
       | Empty -> Empty
-      | Node (_, l, v, r) when compare a v < 0 -> avl_balance (remove l a) v r
-      | Node (_, l, v, r) when compare a v > 0 -> avl_balance l v (remove r a)
+      | Node (_, l, v, r) when compare a v < 0 ->
+        avl_balance (remove_cmp l ~compare a) v r
+      | Node (_, l, v, r) when compare a v > 0 ->
+        avl_balance l v (remove_cmp r ~compare a)
       | Node (_, l, _, r) -> merge l r
     ;;
+
+    let remove = remove_cmp ~compare:E.compare
 
     (* Use a custom key to identify an entry and update it using a function,
        this function must not change the ordering of the entry. *)

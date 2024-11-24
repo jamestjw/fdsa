@@ -2,6 +2,7 @@ module type BST = sig
   type e
   type t
 
+  val empty : t
   val height : t -> int
   val size : t -> int
   val add : t -> e -> t
@@ -10,6 +11,7 @@ module type BST = sig
   val range : t -> e -> e -> e list
   val range_cmp : t -> compare:('a -> e -> int) -> 'a -> 'a -> e list
   val remove : t -> e -> t
+  val remove_cmp : t -> compare:('a -> e -> int) -> 'a -> t
   val update : t -> 'a -> compare:('a -> e -> int) -> f:(e -> e) -> t
   val pred : t -> e -> e option
   val succ : t -> e -> e option
