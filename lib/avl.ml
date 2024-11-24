@@ -6,6 +6,7 @@ module AvlTree = struct
     type e = E.t
     type t = Empty | Node of int * t * e * t
 
+    let compare = E.compare
     let height = function Empty -> 0 | Node (h, _, _, _) -> h
 
     let new_node left v right =
@@ -67,12 +68,32 @@ module AvlTree = struct
       | Empty -> 0
       | Node (_, l, _, r) -> 1 + size l + size r
 
-    let rec find tree a =
+    let rec find_cmp tree ~compare k =
       match tree with
       | Empty -> None
-      | Node (_, l, v, _) when compare a v < 0 -> find l a
-      | Node (_, _, v, r) when compare a v > 0 -> find r a
+      | Node (_, l, v, _) when compare k v < 0 -> find_cmp l ~compare k
+      | Node (_, _, v, r) when compare k v > 0 -> find_cmp r ~compare k
       | Node (_, _, v, _) -> Some v
+
+    let find = find_cmp ~compare:E.compare
+    let mem tree e = find tree e |> Option.is_some
+
+    (* Returns a list of values that are within a certain range (inclusive).
+       Comparison is done using a custom compare function. *)
+    let range_cmp tree ~compare lower upper =
+      let rec range_cmp' tree lower upper acc =
+        match tree with
+        | Empty -> acc
+        | Node (_, _, v, r) when compare lower v < 0 ->
+            range_cmp' r lower upper acc
+        | Node (_, l, v, _) when compare upper v > 0 ->
+            range_cmp' l lower upper acc
+        | Node (_, l, v, r) ->
+            range_cmp' l lower upper (v :: range_cmp' r lower upper acc)
+      in
+      range_cmp' tree lower upper []
+
+    let range = range_cmp ~compare:E.compare
 
     (* When an 'existing' element is added again to the tree, it takes the place
        of the one that is already there.*)
@@ -90,6 +111,19 @@ module AvlTree = struct
       | Node (_, l, v, r) when compare a v < 0 -> avl_balance (remove l a) v r
       | Node (_, l, v, r) when compare a v > 0 -> avl_balance l v (remove r a)
       | Node (_, l, _, r) -> merge l r
+
+    (* Use a custom key to identify an entry and update it using a function,
+       this function must not change the ordering of the entry. *)
+    let rec update tree k ~compare ~f =
+      let update' = update ~compare ~f in
+      match tree with
+      | Empty -> Empty
+      | Node (h, l, v, r) when compare k v < 0 -> Node (h, update' l k, v, r)
+      | Node (h, l, v, r) when compare k v > 0 -> Node (h, l, v, update' r k)
+      | Node (h, l, v, r) ->
+          let v' = f v in
+          assert (E.compare v v' = 0);
+          Node (h, l, v', r)
 
     let is_empty = function Empty -> true | _ -> false
 
@@ -126,5 +160,36 @@ module AvlTree = struct
             match min_value l with None -> acc | Some ml -> Some ml)
       in
       succ' tree e None
+
+    (* Looks for a certain entry using a custom compare function and splits
+       it off from the tree. Essentially combines remove and find. *)
+    let rec split_cmp tree ~compare i =
+      match tree with
+      | Empty -> None
+      | Node (_, l, j, r) when compare i j < 0 ->
+          split_cmp l ~compare i
+          |> Option.map (fun (l', y) -> (avl_balance l' j r, y))
+      | Node (_, l, j, r) when compare i j > 0 ->
+          split_cmp r ~compare i
+          |> Option.map (fun (r', y) -> (avl_balance l j r', y))
+      | Node (_, l, j, r) -> Some (merge l r, j)
+
+    let split = split_cmp ~compare:E.compare
+
+    let rec split_min tree =
+      match tree with
+      | Empty -> None
+      | Node (_, Empty, x, r) -> Some (r, x)
+      | Node (_, l, x, r) ->
+          let l', y = split_min l |> Option.get in
+          Some (avl_balance l' x r, y)
+
+    let traverse tree =
+      let rec traverse' tree acc =
+        match tree with
+        | Empty -> acc
+        | Node (_, l, v, r) -> traverse' l (v :: traverse' r acc)
+      in
+      traverse' tree []
   end
 end
