@@ -1,0 +1,6 @@
+(library
+ (name inline_tests)
+ (libraries base fdsa fmt)
+ (preprocess
+  (pps ppx_jane ppx_expect ppx_assert))
+ (inline_tests))
